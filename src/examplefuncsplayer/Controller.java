@@ -3,22 +3,22 @@ package examplefuncsplayer;
 import battlecode.common.*;
 
 public abstract class Controller {
-    private final RobotController rc;
+    final RobotController rc;
 
     // Robot Constants
-    private final Team FRIENDLY;
-    private final Team ENEMY;
-    private final Team NEUTRAL;
-    private final int SENSOR_RADIUS;
-    private final int ACTION_RADIUS;
-    private final int SENSOR_RADIUS_SQ;
-    private final int ACTION_RADIUS_SQ;
+    final Team FRIENDLY;
+    final Team ENEMY;
+    final Team NEUTRAL;
+    final int SENSOR_RADIUS;
+    final int ACTION_RADIUS;
+    final int SENSOR_RADIUS_SQ;
+    final int ACTION_RADIUS_SQ;
 
     // Robot Data
     public int turnCount;
-    private MapLocation curLocation;
-    private RobotInfo[] allInfo;
-    private RobotInfo[][] mapKnowledge;
+    MapLocation curLocation;
+    RobotInfo[] allInfo;
+    RobotInfo[][] mapKnowledge;
 
     Controller(RobotController rc) {
         this.rc = rc;
