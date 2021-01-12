@@ -268,6 +268,8 @@ public abstract class Controller {
             if (sendCommunication(comm))
                 comm.turns--;
             if (comm.turns <= 0) commsQueue.remove();
+        } else {
+            sendCommunication(new Communication(curLocation, Flags.NONE, 0));
         }
     }
 

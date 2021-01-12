@@ -41,6 +41,7 @@ public strictfp class RobotPlayer {
                 c.turnCount++;
                 c.readSensors();
                 c.run();
+                c.broadcast();
 
                 prevRobotType = rc.getType();
 
