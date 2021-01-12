@@ -19,7 +19,11 @@ public abstract class Controller {
     public int turnCount;
     MapLocation curLocation;
     RobotInfo[] allInfo;
-    RobotInfo[][] mapKnowledge;
+
+    // Path Finding
+    MapLocation destination;
+    int minDist;
+    boolean onWall;
 
     Controller(RobotController rc) {
         this.rc = rc;
@@ -36,7 +40,6 @@ public abstract class Controller {
         // Initialize info variables
         turnCount = 0;
         curLocation = rc.getLocation();
-        mapKnowledge = new RobotInfo[SENSOR_RADIUS * 2 + 1][SENSOR_RADIUS * 2 + 1];
     }
 
     boolean tryMove(Direction dir) throws GameActionException {
@@ -82,12 +85,36 @@ public abstract class Controller {
     void readSensors() {
         curLocation = rc.getLocation();
         allInfo = rc.senseNearbyRobots(-1);
-        mapKnowledge = new RobotInfo[SENSOR_RADIUS * 2 + 1][SENSOR_RADIUS * 2 + 1];
+    }
 
-        for (RobotInfo r : allInfo) {
-            int dX = r.getLocation().x - curLocation.x;
-            int dY = r.getLocation().y - curLocation.y;
-            mapKnowledge[SENSOR_RADIUS + dX][SENSOR_RADIUS + dY] = r;
+    void setDestination(MapLocation destination) {
+        this.destination = destination;
+        this.minDist = Integer.MAX_VALUE;
+        this.onWall = false;
+    }
+
+    void moveToDestination() throws GameActionException {
+        boolean isLocReached = curLocation.equals(destination);
+
+        if (!isLocReached && rc.isReady()) {
+            Direction dir = curLocation.directionTo(destination);
+            int curDist = curLocation.distanceSquaredTo(destination);
+
+            if (onWall) {
+                if (curDist <= minDist && rc.canMove(dir)) {
+                    onWall = false;
+                } else {
+                    if (rc.canMove(dir.rotateLeft()))
+                        rc.move(dir.rotateLeft());
+                }
+            } else {
+                if (rc.canMove(dir)) {
+                    rc.move(dir);
+                } else {
+                    onWall = true;
+                }
+            }
+            minDist = Math.min(curDist, minDist);
         }
     }
 

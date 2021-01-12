@@ -24,11 +24,11 @@ public strictfp class RobotPlayer {
                 throw new IllegalStateException("Unexpected value: " + rc.getType());
         }
 
-        RobotType prev_robot_type =  rc.getType();
+        RobotType prevRobotType =  rc.getType();
 
         while (true) {
             try {
-                if (prev_robot_type != rc.getType()){
+                if (prevRobotType != rc.getType()){
                     switch (rc.getType()) {
                         case ENLIGHTENMENT_CENTER: c = new EnlightenmentCenter(rc); break;
                         case POLITICIAN:           c = new Politician(rc);          break;
@@ -42,7 +42,7 @@ public strictfp class RobotPlayer {
                 c.readSensors();
                 c.run();
 
-                prev_robot_type = rc.getType();
+                prevRobotType = rc.getType();
 
                 Clock.yield();
 
