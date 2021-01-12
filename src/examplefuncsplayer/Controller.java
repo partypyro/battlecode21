@@ -2,6 +2,8 @@ package examplefuncsplayer;
 
 import battlecode.common.*;
 import java.lang.Math;
+import java.util.LinkedList;
+import java.util.Queue;
 
 public abstract class Controller {
     final RobotController rc;
@@ -29,12 +31,14 @@ public abstract class Controller {
     boolean onWall;
     Direction explore_direction;
 
-    // Communication constants
+    // Communication variables
     final int Y_BITS = 8;
     final int DATA_BITS = 16;
     final int X_MASK = 0xFF;
     final int Y_MASK = 0xFF << Y_BITS;
     final int DATA_MASK = 0xFF << DATA_BITS;
+
+    Queue<Communication> commsQueue = new LinkedList<>();
 
     Controller(RobotController rc) {
         this.rc = rc;
@@ -67,7 +71,6 @@ public abstract class Controller {
         turnCount = 0;
         curLocation = rc.getLocation();
         explore_direction = randomDirection();
-
     }
 
     void readSensors() {
@@ -120,7 +123,7 @@ public abstract class Controller {
 
     void explore(){
         // move continuously in a exploration direction
-        if (!tryMove(explore_direction)){
+        if (rc.isReady() && !tryMove(explore_direction)){
             explore_direction = randomDirection();
         }
     }
@@ -167,7 +170,7 @@ public abstract class Controller {
             int y = curLocation.y - EC_LOC.y;
 
             // Set the new x and y bits
-            int flag = (data & 0xFF) << DATA_BITS | (x & 0xFF) << Y_BITS | (y & 0xFF);
+            int flag = (data & 0xFF) << DATA_BITS | (y & 0xFF) << Y_BITS | (x & 0xFF);
             if (rc.canSetFlag(flag)) {
                 rc.setFlag(flag);
                 return true;
@@ -189,7 +192,7 @@ public abstract class Controller {
             int y = loc.y - EC_LOC.y;
 
             // Set the new x and y bits
-            int flag = (data & 0xFF) << DATA_BITS | (x & 0xFF) << Y_BITS | (y & 0xFF);
+            int flag = (data & 0xFF) << DATA_BITS | (y & 0xFF) << Y_BITS | (x & 0xFF);
             if (rc.canSetFlag(flag)) {
                 rc.setFlag(flag);
                 return true;
@@ -225,9 +228,9 @@ public abstract class Controller {
 
             // Get the y value
             byte y = (byte) ((flag & Y_MASK) >> Y_BITS);
-            byte x = (byte) ((flag & DATA_MASK) >> DATA_BITS);
+            byte x = (byte) (flag & X_MASK);
 
-            return new MapLocation(x, y);
+            return new MapLocation(x + EC_LOC.x, y + EC_LOC.y);
         } catch (GameActionException e) {
             // If we cannot get the flag return null
         }
@@ -238,13 +241,34 @@ public abstract class Controller {
         try {
             // Return the data bits if possible
             if (rc.canGetFlag(id))
-                return (byte) ((rc.getFlag(ID) & DATA_MASK) >> DATA_BITS);
+                return (byte) ((rc.getFlag(id) & DATA_MASK) >> DATA_BITS);
             else return 0;
 
         } catch (GameActionException e) {
             // If we cannot get the flag return 0
         }
         return 0;
+    }
+
+    boolean sendCommunication(Communication comm) {
+        return sendData(comm.data) && sendLocation(comm.location);
+    }
+
+    void queueCommunication(MapLocation loc, byte data, int turns) {
+        commsQueue.add(new Communication(loc, data, turns));
+    }
+
+    void stopCommunication() {
+        commsQueue.remove();
+    }
+
+    void broadcast() {
+        Communication comm = commsQueue.peek();
+        if (comm != null){
+            if (sendCommunication(comm))
+                comm.turns--;
+            if (comm.turns <= 0) commsQueue.remove();
+        }
     }
 
     public abstract void run() throws GameActionException;
