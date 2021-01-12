@@ -14,8 +14,8 @@ public class Politician extends Controller {
     @Override
     public void run() throws GameActionException {
 
-        tryMove(randomDirection());
-
+        //tryMove(randomDirection());
+        explore();
         for (RobotInfo r : allInfo){
             if (r.team == NEUTRAL){
                 if(rc.canEmpower(ACTION_RADIUS_SQ)){

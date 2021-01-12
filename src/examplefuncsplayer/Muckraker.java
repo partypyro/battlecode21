@@ -11,6 +11,6 @@ public class Muckraker extends Controller {
 
     @Override
     public void run() throws GameActionException {
-        tryMove(randomDirection());
+        explore();
     }
 }

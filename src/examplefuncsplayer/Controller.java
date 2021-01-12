@@ -24,6 +24,7 @@ public abstract class Controller {
     MapLocation destination;
     int minDist;
     boolean onWall;
+    Direction explore_direction;
 
     Controller(RobotController rc) {
         this.rc = rc;
@@ -40,16 +41,22 @@ public abstract class Controller {
         // Initialize info variables
         turnCount = 0;
         curLocation = rc.getLocation();
+        explore_direction = randomDirection();
     }
 
-    boolean tryMove(Direction dir) throws GameActionException {
-        if (rc.canMove(dir) && rc.isReady()) {
-            rc.move(dir);
-            return true;
-        } else return false;
+    boolean tryMove(Direction dir){
+        try{
+            if (rc.canMove(dir) && rc.isReady()) {
+                rc.move(dir);
+                return true;
+            } else return false;
+        }
+        catch (GameActionException err) {
+            return false;
+        }
     }
 
-    Direction randomDirection() throws GameActionException{
+    Direction randomDirection(){
 
         int num =  (int)(Math.random() * (7 + 1));
         switch (num){
@@ -86,6 +93,12 @@ public abstract class Controller {
         allInfo = rc.senseNearbyRobots(-1);
     }
 
+    void explore(){
+        // move continuously in a exploration direction
+        if (!tryMove(explore_direction)){
+            explore_direction = randomDirection();
+        }
+    }
     void setDestination(MapLocation destination) {
         this.destination = destination;
         this.minDist = Integer.MAX_VALUE;
