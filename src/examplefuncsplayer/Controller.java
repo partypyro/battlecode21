@@ -14,6 +14,9 @@ public abstract class Controller {
     final int ACTION_RADIUS;
     final int SENSOR_RADIUS_SQ;
     final int ACTION_RADIUS_SQ;
+    final int ID;
+    int EC_ID;
+    MapLocation EC_LOC;
 
     // Robot Data
     public int turnCount;
@@ -26,6 +29,13 @@ public abstract class Controller {
     boolean onWall;
     Direction explore_direction;
 
+    // Communication constants
+    final int Y_BITS = 8;
+    final int DATA_BITS = 16;
+    final int X_MASK = 0xFF;
+    final int Y_MASK = 0xFF << Y_BITS;
+    final int DATA_MASK = 0xFF << DATA_BITS;
+
     Controller(RobotController rc) {
         this.rc = rc;
 
@@ -37,27 +47,35 @@ public abstract class Controller {
         ACTION_RADIUS_SQ = rc.getType().actionRadiusSquared;
         SENSOR_RADIUS = (int) Math.ceil(Math.sqrt(SENSOR_RADIUS_SQ));
         ACTION_RADIUS = (int) Math.ceil(Math.sqrt(ACTION_RADIUS_SQ));
+        ID = rc.getID();
+        // Find the location of the enlightenment center we spawned from (or ourself if we are an enlightenment center)
+        readSensors();
+        if (rc.getType() == RobotType.ENLIGHTENMENT_CENTER) {
+            EC_ID = ID;
+            EC_LOC = curLocation;
+        } else {
+            for (RobotInfo r : allInfo) {
+                if (r.type == RobotType.ENLIGHTENMENT_CENTER && r.team == FRIENDLY) {
+                    EC_ID = r.ID;
+                    EC_LOC = r.location;
+                    break;
+                }
+            }
+        }
 
         // Initialize info variables
         turnCount = 0;
         curLocation = rc.getLocation();
         explore_direction = randomDirection();
+
     }
 
-    boolean tryMove(Direction dir){
-        try{
-            if (rc.canMove(dir) && rc.isReady()) {
-                rc.move(dir);
-                return true;
-            } else return false;
-        }
-        catch (GameActionException err) {
-            return false;
-        }
+    void readSensors() {
+        curLocation = rc.getLocation();
+        allInfo = rc.senseNearbyRobots(-1);
     }
 
     Direction randomDirection(){
-
         int num =  (int)(Math.random() * (7 + 1));
         switch (num){
             case 0: return Direction.NORTH;
@@ -72,7 +90,19 @@ public abstract class Controller {
         return Direction.NORTH;
     }
 
-    boolean moveTo(MapLocation loc) throws GameActionException {
+    boolean tryMove(Direction dir){
+        try{
+            if (rc.canMove(dir) && rc.isReady()) {
+                rc.move(dir);
+                return true;
+            } else return false;
+        }
+        catch (GameActionException err) {
+            return false;
+        }
+    }
+
+    boolean moveTo(MapLocation loc) {
         boolean isLocReached = rc.getLocation().equals(loc);
 
         if (!isLocReached) {
@@ -88,17 +118,13 @@ public abstract class Controller {
         return isLocReached;
     }
 
-    void readSensors() {
-        curLocation = rc.getLocation();
-        allInfo = rc.senseNearbyRobots(-1);
-    }
-
     void explore(){
         // move continuously in a exploration direction
         if (!tryMove(explore_direction)){
             explore_direction = randomDirection();
         }
     }
+
     void setDestination(MapLocation destination) {
         this.destination = destination;
         this.minDist = Integer.MAX_VALUE;
@@ -128,6 +154,97 @@ public abstract class Controller {
             }
             minDist = Math.min(curDist, minDist);
         }
+    }
+
+    boolean sendCurLocation() {
+        try {
+            // Get data bits from our current flag
+            int data = 0;
+            if (rc.canGetFlag(ID)) data = (rc.getFlag(ID) & DATA_MASK) >> DATA_BITS;
+
+            // Find x and y relative to starting location
+            int x = curLocation.x - EC_LOC.x;
+            int y = curLocation.y - EC_LOC.y;
+
+            // Set the new x and y bits
+            int flag = (data & 0xFF) << DATA_BITS | (x & 0xFF) << Y_BITS | (y & 0xFF);
+            if (rc.canSetFlag(flag)) {
+                rc.setFlag(flag);
+                return true;
+            }
+        } catch (GameActionException e) {
+            // If we fail to get our own flag or cannot set our flag, return false
+        }
+        return false;
+    }
+
+    boolean sendLocation(MapLocation loc) {
+        try {
+            // Get data bits from our current flag
+            int data = 0;
+            if (rc.canGetFlag(ID)) data = (rc.getFlag(ID) & DATA_MASK) >> DATA_BITS;
+
+            // Find x and y relative to starting location
+            int x = loc.x - EC_LOC.x;
+            int y = loc.y - EC_LOC.y;
+
+            // Set the new x and y bits
+            int flag = (data & 0xFF) << DATA_BITS | (x & 0xFF) << Y_BITS | (y & 0xFF);
+            if (rc.canSetFlag(flag)) {
+                rc.setFlag(flag);
+                return true;
+            }
+        } catch (GameActionException e) {
+            // If we fail to get our own flag or cannot set our flag, return false
+        }
+        return false;
+    }
+
+    boolean sendData(byte data) {
+        try {
+            int flag = 0;
+            // Get the current flag and erase the data bits
+            if (rc.canGetFlag(ID)) flag = rc.getFlag(ID) & (X_MASK | Y_MASK);
+            // Set the new data bits
+            flag = (data & 0xFF) << DATA_BITS | flag;
+            if (rc.canSetFlag(flag)) {
+                rc.setFlag(flag);
+                return true;
+            }
+        } catch (GameActionException e) {
+            // If we fail to get our own flag or cannot set our flag, return false
+        }
+        return false;
+    }
+
+    MapLocation getLocation(int id) {
+        try {
+            int flag;
+            if (rc.canGetFlag(id)) flag = rc.getFlag(id);
+            else return null;
+
+            // Get the y value
+            byte y = (byte) ((flag & Y_MASK) >> Y_BITS);
+            byte x = (byte) ((flag & DATA_MASK) >> DATA_BITS);
+
+            return new MapLocation(x, y);
+        } catch (GameActionException e) {
+            // If we cannot get the flag return null
+        }
+        return null;
+    }
+
+    byte getData(int id) {
+        try {
+            // Return the data bits if possible
+            if (rc.canGetFlag(id))
+                return (byte) ((rc.getFlag(ID) & DATA_MASK) >> DATA_BITS);
+            else return 0;
+
+        } catch (GameActionException e) {
+            // If we cannot get the flag return 0
+        }
+        return 0;
     }
 
     public abstract void run() throws GameActionException;
