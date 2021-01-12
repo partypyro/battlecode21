@@ -11,6 +11,5 @@ public class Slanderer extends Controller {
 
     @Override
     public void run() throws GameActionException {
-
     }
 }
