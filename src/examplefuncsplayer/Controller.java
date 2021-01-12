@@ -50,8 +50,7 @@ public abstract class Controller {
     }
 
     Direction randomDirection() throws GameActionException{
-        //Random rand =  new Random();
-        //int upperbound = 8;
+
         int num =  (int)(Math.random() * (7 + 1));
         switch (num){
             case 0: return Direction.NORTH;

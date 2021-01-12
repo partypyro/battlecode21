@@ -11,8 +11,18 @@ public class EnlightenmentCenter extends Controller {
         super(rc);
     }
 
+    int prev_vote_count = 0;
+    double bid_percent = 0.01;
+
     @Override
     public void run() throws GameActionException {
+
+        //if lost vote increment bid_percent
+
+        if (prev_vote_count == rc.getTeamVotes()){
+            bid_percent += .01;
+        }
+
         // setup, build 4 muckrakers
         if (turnCount == 1){
             if (rc.canBuildRobot(RobotType.MUCKRAKER, Direction.NORTH, 1)){
@@ -47,9 +57,11 @@ public class EnlightenmentCenter extends Controller {
 
         /// FOR ACTIONS IN EACH TURN
         //bid
-        if (rc.canBid((int)(rc.getInfluence() * .01))){
-            rc.bid((int)(rc.getInfluence() * .01));
-            System.out.println("Bidding: " + (int)(rc.getInfluence() * .01));
+        if (rc.canBid((int)(rc.getInfluence() * bid_percent))){
+            rc.bid((int)(rc.getInfluence() * bid_percent));
+            System.out.println("Bidding: " + (int)(rc.getInfluence() * bid_percent));
         }
+
+        prev_vote_count = rc.getTeamVotes();
     }
 }
