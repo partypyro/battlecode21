@@ -126,6 +126,14 @@ public abstract class Controller {
         if (rc.isReady() && !tryMove(explore_direction)){
             explore_direction = randomDirection();
         }
+
+        // scan/scout
+        for (RobotInfo r : allInfo){
+            if (r.team == NEUTRAL && r.getType() == RobotType.ENLIGHTENMENT_CENTER){
+                System.out.println("Found Enlightenment Center!");
+                queueCommunication(r.getLocation(), Flags.NEUTRAL_EC_FOUND, 50);
+            }
+        }
     }
 
     void setDestination(MapLocation destination) {

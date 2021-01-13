@@ -1,9 +1,7 @@
 package examplefuncsplayer;
 
-import battlecode.common.Direction;
-import battlecode.common.GameActionException;
-import battlecode.common.RobotController;
-import battlecode.common.RobotType;
+import battlecode.common.*;
+import java.util.HashSet;
 
 public class EnlightenmentCenter extends Controller {
 
@@ -14,14 +12,10 @@ public class EnlightenmentCenter extends Controller {
     int prev_vote_count = 0;
     double bid_percent = 0.01;
 
+    HashSet<Integer> children = new HashSet<Integer>();
+
     @Override
     public void run() throws GameActionException {
-
-        //if lost vote increment bid_percent
-
-        if (prev_vote_count == rc.getTeamVotes()){
-            bid_percent += .01;
-        }
 
         // setup, build 4 muckrakers
         if (turnCount == 1){
@@ -57,11 +51,32 @@ public class EnlightenmentCenter extends Controller {
 
         /// FOR ACTIONS IN EACH TURN
         //bid
+        System.out.println(turnCount);
         if (rc.canBid((int)(rc.getInfluence() * bid_percent))){
             rc.bid((int)(rc.getInfluence() * bid_percent));
-            System.out.println("Bidding: " + (int)(rc.getInfluence() * bid_percent));
         }
 
+        //scan for new children
+        for (RobotInfo r : allInfo){
+            if (!children.contains(r.getID())){
+                children.add(r.getID());
+            }
+        }
+
+        //scan for neutral enlightenment center flags, broadcast if found
+        for (int i: children){
+            if (rc.canGetFlag(i)){
+                int flag  = rc.getFlag(i);
+                System.out.println("Flag! :" + flag);
+                System.out.println("Data :" + getData(i));
+                if (getData(i) == Flags.NEUTRAL_EC_FOUND){
+                    System.out.println("Found Enlightenment Center!" + rc.getFlag(i));
+                    queueCommunication(getLocation(i), Flags.NEUTRAL_EC_FOUND, 50);
+                }
+            }
+        }
         prev_vote_count = rc.getTeamVotes();
     }
+
+
 }
