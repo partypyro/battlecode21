@@ -39,6 +39,7 @@ public class EnlightenmentCenter extends Controller {
             }
         }
 
+
         // farming, spawn slanderer every 20 rounds with .2 of total influence
 
         if (turnCount > 7 && turnCount%20 == 0){
@@ -48,6 +49,18 @@ public class EnlightenmentCenter extends Controller {
                 }
             }
         }
+
+
+        // build politicians
+
+        if (turnCount > 12 && turnCount%13 == 0){
+            for (Direction dir : Direction.allDirections()){
+                if (rc.canBuildRobot(RobotType.POLITICIAN, dir, (int)(rc.getInfluence() * .1))){
+                    rc.buildRobot(RobotType.POLITICIAN, dir, (int)(rc.getInfluence() * .1));
+                }
+            }
+        }
+
 
         /// FOR ACTIONS IN EACH TURN
         //bid

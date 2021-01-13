@@ -15,7 +15,12 @@ public class Politician extends Controller {
     public void run() throws GameActionException {
 
         //tryMove(randomDirection());
-        explore();
+        if (check_ec_flag()){
+            moveToDestination();
+        }
+        else{
+            explore();
+        }
         for (RobotInfo r : allInfo){
             if (r.team == NEUTRAL){
                 if(rc.canEmpower(ACTION_RADIUS_SQ)){
@@ -26,5 +31,16 @@ public class Politician extends Controller {
 
 
 
+    }
+
+    boolean check_ec_flag(){
+        //return true if destination, false to explore randomly
+        if (getData(EC_ID) == Flags.NONE){
+            return false;
+        }
+        else {
+            setDestination(getLocation(EC_ID));
+            return true;
+        }
     }
 }

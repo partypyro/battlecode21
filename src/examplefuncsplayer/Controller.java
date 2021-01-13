@@ -129,7 +129,7 @@ public abstract class Controller {
 
         // scan/scout
         for (RobotInfo r : allInfo){
-            if (r.team == NEUTRAL && r.getType() == RobotType.ENLIGHTENMENT_CENTER){
+            if (r.team == NEUTRAL && r.getType() == RobotType.ENLIGHTENMENT_CENTER && rc.getType() == RobotType.MUCKRAKER){
                 System.out.println("Found Enlightenment Center!");
                 queueCommunication(r.getLocation(), Flags.NEUTRAL_EC_FOUND, 50);
             }
