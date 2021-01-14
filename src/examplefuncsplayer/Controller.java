@@ -1,7 +1,8 @@
 package examplefuncsplayer;
 
 import battlecode.common.*;
-import java.lang.Math;
+
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Queue;
 
@@ -24,6 +25,7 @@ public abstract class Controller {
     public int turnCount;
     MapLocation curLocation;
     RobotInfo[] allInfo;
+    HashMap<MapLocation, Team> discoveredECS = new HashMap<>();
 
     // Path Finding
     MapLocation destination;
@@ -37,7 +39,6 @@ public abstract class Controller {
     final int X_MASK = 0xFF;
     final int Y_MASK = 0xFF << Y_BITS;
     final int DATA_MASK = 0xFF << DATA_BITS;
-
     Queue<Communication> commsQueue = new LinkedList<>();
 
     Controller(RobotController rc) {
@@ -76,6 +77,34 @@ public abstract class Controller {
     void readSensors() {
         curLocation = rc.getLocation();
         allInfo = rc.senseNearbyRobots(-1);
+
+        // Look through our sensor data and check if we've discovered any new ECS or if any ECS have changed teams
+        for (RobotInfo r : allInfo) {
+            if (r.type == RobotType.ENLIGHTENMENT_CENTER) {
+                boolean newEC = false;
+                if (!discoveredECS.containsKey(r.location)) {
+                    discoveredECS.put(r.location, r.team);
+                    newEC = true;
+                }
+                else if (discoveredECS.containsKey(r.location)) {
+                    Team team = discoveredECS.get(r.location);
+                    if (team != r.team) {
+                        discoveredECS.put(r.location, r.team);
+                        newEC = true;
+                    }
+                }
+
+                // If we've found any new ECS or ECS that have changed teams, add them to the communication queue
+                if(newEC) {
+                    byte commFlag = 0;
+                    if(r.team == NEUTRAL)    commFlag = Flags.NEUTRAL_EC_FOUND;
+                    if(r.team == FRIENDLY)   commFlag = Flags.FRIENDLY_EC_FOUND;
+                    if(r.team == ENEMY)      commFlag = Flags.ENEMY_EC_FOUND;
+
+                    queueCommunication(r.location, commFlag, 10);
+                }
+            }
+        }
     }
 
     Direction randomDirection(){
@@ -126,14 +155,6 @@ public abstract class Controller {
         if (rc.isReady() && !tryMove(explore_direction)){
             explore_direction = randomDirection();
         }
-
-        // scan/scout
-        for (RobotInfo r : allInfo){
-            if (r.team == NEUTRAL && r.getType() == RobotType.ENLIGHTENMENT_CENTER && rc.getType() == RobotType.MUCKRAKER){
-                System.out.println("Found Enlightenment Center!");
-                queueCommunication(r.getLocation(), Flags.NEUTRAL_EC_FOUND, 50);
-            }
-        }
     }
 
     void setDestination(MapLocation destination) {
@@ -168,39 +189,21 @@ public abstract class Controller {
     }
 
     boolean sendCurLocation() {
-        try {
-            // Get data bits from our current flag
-            int data = 0;
-            if (rc.canGetFlag(ID)) data = (rc.getFlag(ID) & DATA_MASK) >> DATA_BITS;
-
-            // Find x and y relative to starting location
-            int x = curLocation.x - EC_LOC.x;
-            int y = curLocation.y - EC_LOC.y;
-
-            // Set the new x and y bits
-            int flag = (data & 0xFF) << DATA_BITS | (y & 0xFF) << Y_BITS | (x & 0xFF);
-            if (rc.canSetFlag(flag)) {
-                rc.setFlag(flag);
-                return true;
-            }
-        } catch (GameActionException e) {
-            // If we fail to get our own flag or cannot set our flag, return false
-        }
-        return false;
+        return sendLocation(curLocation);
     }
 
     boolean sendLocation(MapLocation loc) {
         try {
             // Get data bits from our current flag
             int data = 0;
-            if (rc.canGetFlag(ID)) data = (rc.getFlag(ID) & DATA_MASK) >> DATA_BITS;
+            if (rc.canGetFlag(ID)) data = rc.getFlag(ID) & DATA_MASK;
 
             // Find x and y relative to starting location
-            int x = loc.x - EC_LOC.x;
-            int y = loc.y - EC_LOC.y;
+            byte x = (byte) (loc.x - EC_LOC.x);
+            byte y = (byte) (loc.y - EC_LOC.y);
 
             // Set the new x and y bits
-            int flag = (data & 0xFF) << DATA_BITS | (y & 0xFF) << Y_BITS | (x & 0xFF);
+            int flag = data | (y & 0xFF) << Y_BITS | (x & 0xFF);
             if (rc.canSetFlag(flag)) {
                 rc.setFlag(flag);
                 return true;
@@ -235,8 +238,8 @@ public abstract class Controller {
             else return null;
 
             // Get the y value
-            byte y = (byte) ((flag & Y_MASK) >> Y_BITS);
-            byte x = (byte) (flag & X_MASK);
+            byte y = (byte) (((flag & Y_MASK) >> Y_BITS) & 0xFF);
+            byte x = (byte) ((flag & X_MASK) & 0xFF);
 
             return new MapLocation(x + EC_LOC.x, y + EC_LOC.y);
         } catch (GameActionException e) {
@@ -259,7 +262,7 @@ public abstract class Controller {
     }
 
     boolean sendCommunication(Communication comm) {
-        return sendData(comm.data) && sendLocation(comm.location);
+        return sendLocation(comm.location) && sendData(comm.data);
     }
 
     void queueCommunication(MapLocation loc, byte data, int turns) {

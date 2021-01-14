@@ -7,19 +7,32 @@ import battlecode.common.RobotType;
 
 public class Muckraker extends Controller {
 
+
     Muckraker(RobotController rc) {
         super(rc);
     }
 
     @Override
     public void run() throws GameActionException {
-        for (RobotInfo r : allInfo){
-            if (r.team == ENEMY && r.getType() == RobotType.SLANDERER){
-                if(rc.canExpose(r.getLocation())){
-                    rc.expose(r.getLocation());
+        if (EC_ID == 0) {
+            EC_LOC = curLocation;
+            explore();
+
+            for (RobotInfo r : allInfo) {
+                if (r.type == RobotType.ENLIGHTENMENT_CENTER && r.team == FRIENDLY) {
+                    EC_ID = r.ID;
+                    EC_LOC = r.location;
                 }
             }
+        } else {
+            for (RobotInfo r : allInfo){
+                if (r.team == ENEMY && r.getType() == RobotType.SLANDERER){
+                    if(rc.canExpose(r.getLocation())){
+                        rc.expose(r.getLocation());
+                    }
+                }
+            }
+            explore();
         }
-        explore();
     }
 }
