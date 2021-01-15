@@ -33,10 +33,9 @@ public class EnlightenmentCenter extends Controller {
         if (turnCount == 5){
             buildIfCan(RobotType.MUCKRAKER, Direction.WEST, 1);
         }
-        if (turnCount == 7){
+        if (turnCount == 7) {
             buildIfCan(RobotType.MUCKRAKER, Direction.WEST, 1);
         }
-
 
         // farming, spawn slanderer every 20 rounds with .2 of total influence
 
@@ -68,9 +67,6 @@ public class EnlightenmentCenter extends Controller {
         //bid
         System.out.println(turnCount);
         bidIfCan((int) (rc.getInfluence() * bid_percent));
-
-        //scan for new children
-        checkForNewChildren();
 
         // Scan the flags of our children
         for (int id : children){
@@ -116,19 +112,25 @@ public class EnlightenmentCenter extends Controller {
         prev_vote_count = rc.getTeamVotes();
     }
 
-    void checkForNewChildren() {
-        for (RobotInfo r : allInfo){
-            if (curLocation.distanceSquaredTo(r.location) <= 1
-                    && r.team == FRIENDLY){
+    boolean addNewChild(Direction dir) {
+        try {
+            RobotInfo r = rc.senseRobotAtLocation(curLocation.add(dir));
+            if (r != null) {
                 children.add(r.ID);
+                return true;
             }
+            else return false;
+        } catch (GameActionException ignored) {
+
         }
+        return false;
     }
 
     boolean buildIfCan(RobotType type, Direction dir, int influence) {
         try {
             if (rc.canBuildRobot(type, dir, influence)) {
                 rc.buildRobot(type, dir, influence);
+                addNewChild(dir);
                 return true;
             }
         } catch(GameActionException ignored) {
