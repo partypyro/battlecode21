@@ -15,7 +15,7 @@ public class Politician extends Controller {
 
     @Override
     public void run() throws GameActionException {
-        // when spawned, save EC_Coords
+        // FOR ORPHANS (recently converted units) search for friendly EC to be parent
         if (EC_ID == 0) {
             EC_LOC = curLocation;
             explore();
@@ -30,7 +30,7 @@ public class Politician extends Controller {
         // explore/move/actions
         else {
 
-            if (check_ec_flag()){
+            if (check_ec_flag() || destination != null){
                 moveToDestination();
             }
             else{
@@ -47,13 +47,15 @@ public class Politician extends Controller {
 
     boolean check_ec_flag(){
         //return true if destination, false to explore randomly
+        //current destinations: Neutral_EC, Enemy_EC
         if (getData(EC_ID) == Flags.NONE){
             return false;
         }
-        else {
+        else if (getData(EC_ID) == Flags.ENEMY_EC_FOUND || getData(EC_ID) == Flags.NEUTRAL_EC_FOUND) {
             setDestination(getLocation(EC_ID));
             return true;
         }
+        return false;
     }
 
     boolean empowerIfCan(int radius) {
