@@ -17,6 +17,9 @@ public class EnlightenmentCenter extends Controller {
     int prev_vote_count = 0;
     double bid_percent = 0.01;
 
+    // Constants
+    int RUSH_THRESHOLD = 10;
+
     EnlightenmentCenter(RobotController rc) {
         super(rc);
     }
@@ -24,25 +27,33 @@ public class EnlightenmentCenter extends Controller {
     @Override
     public void run() throws GameActionException {
 
+        // Rush detection
+        int enemyTotal = 0;
+        for (RobotInfo r : allInfo) {
+            if (r.team == ENEMY) enemyTotal++;
+        }
+        if (enemyTotal >= RUSH_THRESHOLD) addToBuildQueue(RobotType.POLITICIAN, rc.getInfluence() * .1, 10);
+
         // setup, build 15 muckrakers
         if (turnCount == 1){
-            addToBuildQueue(RobotType.MUCKRAKER, 1, 20);
+            addToBuildQueue(RobotType.MUCKRAKER, 1, 10);
         }
 
-        // farming, spawn slanderer every 20 rounds with .2 of total influence
-        if (turnCount > 7 && turnCount%40 == 0){
-            addToBuildQueue(RobotType.SLANDERER,  (int) (rc.getInfluence() * .3), 1);
+        // farming, spawn slanderer every 40 rounds with .2 of total influence
+        if (turnCount > 200 && turnCount%40 == 0){
+            addToBuildQueue(RobotType.SLANDERER,  rc.getInfluence() * .2, 4);
         }
 
-        // exploration, spawn muckraker every 30 rounds
-        if (turnCount > 7 && turnCount%60 == 0){
+        // exploration, spawn muckraker every 60 rounds
+        if (turnCount > 10 && turnCount%60 == 0){
             addToBuildQueue(RobotType.MUCKRAKER, 1, 1);
         }
 
         // build politicians
 
         if (turnCount > 12 && turnCount%20 == 0){
-            addToBuildQueue(RobotType.POLITICIAN, (int) Math.min(500, (.1 * rc.getInfluence())), 1);
+            addToBuildQueue(RobotType.POLITICIAN, .2 * rc.getInfluence(), 1);
+            addToBuildQueue(RobotType.POLITICIAN,  50, 10);
         }
 
 
@@ -66,19 +77,19 @@ public class EnlightenmentCenter extends Controller {
         }
 
         // Find an EC to target with our politicians
-        if (currentTarget == null || discoveredECS.get(currentTarget) == ENEMY) {
-            if (discoveredECS.containsValue(NEUTRAL)) {
-                for (Map.Entry<MapLocation, Team> target : discoveredECS.entrySet()) {
-                    if (target.getValue() == NEUTRAL) {
+        if (currentTarget == null ||
+                (discoveredECS.get(currentTarget) == ENEMY && !discoveredECS.containsValue(NEUTRAL))) {
+            Team targetTeam = ENEMY;
+            int minDistance = Integer.MAX_VALUE;
+
+            if (discoveredECS.containsValue(NEUTRAL)) targetTeam = NEUTRAL;
+            else if (discoveredECS.containsValue(ENEMY)) targetTeam = ENEMY;
+
+            for (Map.Entry<MapLocation, Team> target : discoveredECS.entrySet()) {
+                if (target.getValue() == targetTeam) {
+                    if (target.getKey().distanceSquaredTo(curLocation) < minDistance) {
                         currentTarget = target.getKey();
-                        break;
-                    }
-                }
-            } else if (discoveredECS.containsValue(ENEMY)) {
-                for (Map.Entry<MapLocation, Team> target : discoveredECS.entrySet()) {
-                    if (target.getValue() == ENEMY) {
-                        currentTarget = target.getKey();
-                        break;
+                        minDistance = target.getKey().distanceSquaredTo(curLocation);
                     }
                 }
             }
@@ -103,6 +114,10 @@ public class EnlightenmentCenter extends Controller {
                     new RobotInfo(quantity, FRIENDLY, type, influence, influence, curLocation)
             );
         }
+    }
+
+    void addToBuildQueue(RobotType type, double influence, int quantity) {
+        addToBuildQueue(type, (int) influence, quantity);
     }
 
     void buildQueue() {
