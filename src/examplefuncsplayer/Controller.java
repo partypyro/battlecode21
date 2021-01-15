@@ -5,6 +5,7 @@ import battlecode.common.*;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Queue;
+import java.util.ArrayList;
 
 public abstract class Controller {
     final RobotController rc;
@@ -157,6 +158,51 @@ public abstract class Controller {
         }
     }
 
+    void orbit(){
+        //orbit around friendly enlightenment center
+        Direction dir = curLocation.directionTo(EC_LOC);
+        Direction orbit_dir = dir.rotateLeft().rotateLeft();
+
+        //want to maximize distance from EC while staying within its detection radius
+        MapLocation move_1 = curLocation.add(orbit_dir.rotateLeft());
+        MapLocation move_2 = curLocation.add(orbit_dir);
+        MapLocation move_3 = curLocation.add(orbit_dir.rotateRight());
+
+        if (move_1.distanceSquaredTo(EC_LOC) > RobotType.ENLIGHTENMENT_CENTER.sensorRadiusSquared){
+            move_1 = null;
+        }
+        if (move_2.distanceSquaredTo(EC_LOC) > RobotType.ENLIGHTENMENT_CENTER.sensorRadiusSquared){
+            move_2 = null;
+        }
+        if (move_3.distanceSquaredTo(EC_LOC) > RobotType.ENLIGHTENMENT_CENTER.sensorRadiusSquared){
+            move_3 = null;
+        }
+
+        MapLocation moves[] = {move_1, move_2, move_3};
+
+        // filter out moves we dont want
+        ArrayList<MapLocation> possible = new ArrayList<>();
+
+        for (MapLocation loc : moves){
+            if (loc != null){
+                possible.add(loc);
+            }
+        }
+
+        int max_dist = 0;
+        MapLocation best_move = possible.get(0);
+        for (MapLocation loc : possible){
+            if (loc.distanceSquaredTo(EC_LOC) > max_dist){
+                max_dist = loc.distanceSquaredTo(EC_LOC);
+                best_move = loc;
+            }
+        }
+
+        if(!tryMove(curLocation.directionTo(best_move))){
+            tryMove(curLocation.directionTo(best_move).rotateRight());
+        }
+
+    }
     void setDestination(MapLocation destination) {
         this.destination = destination;
         this.minDist = Integer.MAX_VALUE;
