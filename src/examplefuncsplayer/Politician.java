@@ -15,6 +15,7 @@ public class Politician extends Controller {
 
     @Override
     public void run() throws GameActionException {
+        // when spawned, save EC_Coords
         if (EC_ID == 0) {
             EC_LOC = curLocation;
             explore();
@@ -25,22 +26,20 @@ public class Politician extends Controller {
                     EC_LOC = r.location;
                 }
             }
-        } else {
+        }
+        // explore/move/actions
+        else {
 
-            //tryMove(randomDirection());
             if (check_ec_flag()){
                 moveToDestination();
             }
             else{
                 explore();
             }
-            if (destination != null
-                    && curLocation.isWithinDistanceSquared(destination, ACTION_RADIUS_SQ)) {
-                for (RobotInfo r : allInfo) {
-                    if (r.team == NEUTRAL || r.team == ENEMY) {
-                        empowerIfCan(ACTION_RADIUS_SQ);
-                        break;
-                    }
+            for (RobotInfo r : allInfo) {
+                if (r.team == NEUTRAL || r.team == ENEMY) {
+                    empowerIfCan(ACTION_RADIUS_SQ);
+                    break;
                 }
             }
         }
