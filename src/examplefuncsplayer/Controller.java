@@ -319,6 +319,10 @@ public abstract class Controller {
         commsQueue.remove();
     }
 
+    boolean containsCommunication(MapLocation loc) {
+        return commsQueue.stream().anyMatch(communication -> communication.location != null && communication.location.equals(loc));
+    }
+
     void broadcast() {
         Communication comm = commsQueue.peek();
         if (comm != null){
