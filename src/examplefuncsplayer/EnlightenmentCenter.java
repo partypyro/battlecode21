@@ -15,6 +15,7 @@ public class EnlightenmentCenter extends Controller {
     // Voting variables
     int prev_vote_count = 0;
     double bid_percent = 0.01;
+    int empower_count = 100;
 
     EnlightenmentCenter(RobotController rc) {
         super(rc);
@@ -83,6 +84,25 @@ public class EnlightenmentCenter extends Controller {
                 case Flags.FRIENDLY_EC_FOUND:   discoveredECS.put(location, FRIENDLY);  break;
             }
         }
+
+        //create an empowered politician
+        if (rc.getEmpowerFactor > 2 && empower_count == 100){
+            for (Direction dir : Direction.allDirections()){
+                if (buildIfCan(RobotType.POLITICIAN, dir, rc.getInfluence() * .8)) {
+                stopCommunication();
+                queueCommunication(curLocation, Flags.EMPOWERED_POLITICIAN, 15);
+                break;
+                }
+            }
+            empower_count--;
+        }
+        if (empower_count < 100){
+            empower_count--;
+        }
+        if (empower_count == 0){
+            empower_count = 100;
+        }
+
 
         // Find an EC to target with our politicians
         if (currentTarget == null || discoveredECS.getOrDefault(currentTarget, FRIENDLY) == ENEMY) {
