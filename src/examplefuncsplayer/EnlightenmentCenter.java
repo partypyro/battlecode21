@@ -7,6 +7,7 @@ import java.util.*;
 public class EnlightenmentCenter extends Controller {
 
     // Bookkeeping variables
+    Queue<RobotInfo> buildQueue = new LinkedList<>();
     HashSet<Integer> children = new HashSet<>();
     HashMap<MapLocation, Team> discoveredECS = new HashMap<>();
     HashSet<MapLocation> targets = new HashSet<>();
@@ -23,49 +24,33 @@ public class EnlightenmentCenter extends Controller {
     @Override
     public void run() throws GameActionException {
 
-        // setup, build 4 muckrakers
+        // setup, build 15 muckrakers
         if (turnCount == 1){
-            buildIfCan(RobotType.MUCKRAKER, Direction.WEST, 1);
-        }
-        if (turnCount == 3){
-            buildIfCan(RobotType.MUCKRAKER, Direction.WEST, 1);
-        }
-        if (turnCount == 5){
-            buildIfCan(RobotType.MUCKRAKER, Direction.WEST, 1);
-        }
-        if (turnCount == 7) {
-            buildIfCan(RobotType.MUCKRAKER, Direction.WEST, 1);
+            addToBuildQueue(RobotType.MUCKRAKER, 1, 20);
         }
 
         // farming, spawn slanderer every 20 rounds with .2 of total influence
-
-        if (turnCount > 7 && turnCount%20 == 0){
-            for (Direction dir : Direction.cardinalDirections()){
-                buildIfCan(RobotType.SLANDERER, dir, (int)(rc.getInfluence() * .2));
-            }
+        if (turnCount > 7 && turnCount%40 == 0){
+            addToBuildQueue(RobotType.SLANDERER,  (int) (rc.getInfluence() * .3), 1);
         }
 
         // exploration, spawn muckraker every 30 rounds
-        if (turnCount > 7 && turnCount%30 == 0){
-            for (Direction dir : Direction.allDirections()){
-                buildIfCan(RobotType.MUCKRAKER, dir, (int)(rc.getInfluence() * .2));
-            }
+        if (turnCount > 7 && turnCount%60 == 0){
+            addToBuildQueue(RobotType.MUCKRAKER, 1, 1);
         }
-
-
 
         // build politicians
 
-        if (turnCount > 12 && turnCount%13 == 0){
-            for (Direction dir : Direction.allDirections()){
-                buildIfCan(RobotType.POLITICIAN, dir, (int) Math.min(500, (.1 * rc.getInfluence())));
-            }
+        if (turnCount > 12 && turnCount%20 == 0){
+            addToBuildQueue(RobotType.POLITICIAN, (int) Math.min(500, (.1 * rc.getInfluence())), 1);
         }
 
 
         /// FOR ACTIONS IN EACH TURN
+        // Build the next robot in the build queue
+        buildQueue();
+
         //bid
-        System.out.println(turnCount);
         bidIfCan((int) (rc.getInfluence() * bid_percent));
 
         // Scan the flags of our children
@@ -81,7 +66,7 @@ public class EnlightenmentCenter extends Controller {
         }
 
         // Find an EC to target with our politicians
-        if (currentTarget == null || discoveredECS.getOrDefault(currentTarget, FRIENDLY) == ENEMY) {
+        if (currentTarget == null || discoveredECS.get(currentTarget) == ENEMY) {
             if (discoveredECS.containsValue(NEUTRAL)) {
                 for (Map.Entry<MapLocation, Team> target : discoveredECS.entrySet()) {
                     if (target.getValue() == NEUTRAL) {
@@ -105,11 +90,31 @@ public class EnlightenmentCenter extends Controller {
             }
         }
 
-        if (currentTarget != null) {
-            queueCommunication(currentTarget, Flags.NEUTRAL_EC_FOUND, 1);
+        if (currentTarget != null && !containsCommunication(currentTarget)) {
+            queueCommunication(currentTarget, Flags.NEUTRAL_EC_FOUND, 5);
         }
 
         prev_vote_count = rc.getTeamVotes();
+    }
+
+    void addToBuildQueue(RobotType type, int influence, int quantity) {
+        for (int i = 1; i <= quantity; i++) {
+            buildQueue.add(
+                    new RobotInfo(quantity, FRIENDLY, type, influence, influence, curLocation)
+            );
+        }
+    }
+
+    void buildQueue() {
+        RobotInfo nextRobot = buildQueue.peek();
+        if (nextRobot != null) {
+            for (Direction dir : Direction.allDirections()) {
+                if (buildIfCan(nextRobot.type, dir, nextRobot.influence)) {
+                    buildQueue.remove();
+                    break;
+                }
+            }
+        }
     }
 
     boolean addNewChild(Direction dir) {
@@ -130,7 +135,8 @@ public class EnlightenmentCenter extends Controller {
         try {
             if (rc.canBuildRobot(type, dir, influence)) {
                 rc.buildRobot(type, dir, influence);
-                addNewChild(dir);
+                if (type == RobotType.MUCKRAKER || type == RobotType.POLITICIAN)
+                    addNewChild(dir);
                 return true;
             }
         } catch(GameActionException ignored) {
