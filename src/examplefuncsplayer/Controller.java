@@ -72,7 +72,8 @@ public abstract class Controller {
         // Initialize info variables
         turnCount = 0;
         curLocation = rc.getLocation();
-        explore_direction = randomDirection();
+        if (EC_LOC != null) explore_direction = curLocation.directionTo(EC_LOC).opposite();
+        else explore_direction = randomDirection();
     }
 
     void readSensors() {
@@ -87,7 +88,7 @@ public abstract class Controller {
                     discoveredECS.put(r.location, r.team);
                     newEC = true;
                 }
-                else if (discoveredECS.containsKey(r.location)) {
+                else {
                     Team team = discoveredECS.get(r.location);
                     if (team != r.team) {
                         discoveredECS.put(r.location, r.team);
@@ -222,6 +223,8 @@ public abstract class Controller {
                 } else {
                     if (rc.canMove(dir.rotateLeft()))
                         rc.move(dir.rotateLeft());
+                    else if (rc.canMove(dir.rotateRight()))
+                        rc.move(dir.rotateRight());
                 }
             } else {
                 if (rc.canMove(dir)) {

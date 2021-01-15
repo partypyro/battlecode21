@@ -29,10 +29,15 @@ public class EnlightenmentCenter extends Controller {
 
         // Rush detection
         int enemyTotal = 0;
+        int rushInfluence = 0;
         for (RobotInfo r : allInfo) {
-            if (r.team == ENEMY) enemyTotal++;
+            if (r.team == ENEMY) {
+                enemyTotal++;
+                rushInfluence += r.influence;
+            }
         }
-        if (enemyTotal >= RUSH_THRESHOLD) addToBuildQueue(RobotType.POLITICIAN, rc.getInfluence() * .1, 10);
+        if (enemyTotal >= RUSH_THRESHOLD)
+            addToBuildQueue(RobotType.POLITICIAN, Math.max(30, rushInfluence * .1), 15);
 
         // setup, build 15 muckrakers
         if (turnCount == 1){
@@ -53,7 +58,7 @@ public class EnlightenmentCenter extends Controller {
 
         if (turnCount > 12 && turnCount%20 == 0){
             addToBuildQueue(RobotType.POLITICIAN, .2 * rc.getInfluence(), 1);
-            addToBuildQueue(RobotType.POLITICIAN,  50, 10);
+            addToBuildQueue(RobotType.POLITICIAN,  50, 5);
         }
 
 
@@ -65,7 +70,7 @@ public class EnlightenmentCenter extends Controller {
         bidIfCan((int) (rc.getInfluence() * bid_percent));
 
         // Scan the flags of our children
-        for (int id : children){
+        for (int id : children) {
             byte data = getData(id);
             MapLocation location = getLocation(id);
 
@@ -73,6 +78,23 @@ public class EnlightenmentCenter extends Controller {
                 case Flags.NEUTRAL_EC_FOUND:    discoveredECS.put(location, NEUTRAL);   break;
                 case Flags.ENEMY_EC_FOUND:      discoveredECS.put(location, ENEMY);     break;
                 case Flags.FRIENDLY_EC_FOUND:   discoveredECS.put(location, FRIENDLY);  break;
+            }
+        }
+
+        // Calculate a safe place for slanderers
+        if (turnCount % 20 == 0 && discoveredECS.containsValue(ENEMY)) {
+            int enemyECS = 1;
+            int dx = 0;
+            int dy = 0;
+            for (Map.Entry<MapLocation, Team> EC : discoveredECS.entrySet()) {
+                if (EC.getValue() == ENEMY) {
+                    dx += curLocation.x - EC.getKey().x;
+                    dy += curLocation.y - EC.getKey().y;
+                    enemyECS++;
+                }
+
+                MapLocation safetyLocation = curLocation.translate(dx / enemyECS, dy / enemyECS);
+                queueCommunication(safetyLocation, Flags.SLANDERER_SAFETY, 10);
             }
         }
 
