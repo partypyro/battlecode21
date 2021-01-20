@@ -1,8 +1,6 @@
 package examplefuncsplayer;
 
-import battlecode.common.GameActionException;
-import battlecode.common.MapLocation;
-import battlecode.common.RobotController;
+import battlecode.common.*;
 
 public class Slanderer extends Controller {
 
@@ -15,6 +13,11 @@ public class Slanderer extends Controller {
         MapLocation safetyLocation = getLocation(EC_ID);
         byte flag = getData(EC_ID);
 
+        for (RobotInfo r : allInfo) {
+            if (r.team == ENEMY) {
+                tryMove(r.getLocation().directionTo(rc.getLocation()));
+            }
+        }
         if (flag == Flags.SLANDERER_SAFETY) {
             setDestination(safetyLocation);
         }
