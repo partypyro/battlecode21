@@ -45,20 +45,20 @@ public class EnlightenmentCenter extends Controller {
         }
 
         // farming, spawn slanderer every 40 rounds with .2 of total influence
-        if (turnCount > 200 && turnCount%40 == 0){
-            addToBuildQueue(RobotType.SLANDERER,  rc.getInfluence() * .2, 4);
+        if (turnCount%7 == 0 && enemyTotal == 0){
+            addToBuildQueue(RobotType.SLANDERER,  rc.getInfluence() * .3, 4);
         }
 
         // exploration, spawn muckraker every 60 rounds
         if (turnCount > 10 && turnCount%60 == 0){
-            addToBuildQueue(RobotType.MUCKRAKER, 1, 1);
+            addToBuildQueue(RobotType.MUCKRAKER, 1, 20);
         }
 
         // build politicians
 
-        if (turnCount > 12 && turnCount%20 == 0){
+        if (turnCount > 12 && turnCount%10 == 0){
             addToBuildQueue(RobotType.POLITICIAN, .2 * rc.getInfluence(), 1);
-            addToBuildQueue(RobotType.POLITICIAN,  50, 5);
+            addToBuildQueue(RobotType.POLITICIAN,  25, 4);
         }
 
 
@@ -124,7 +124,8 @@ public class EnlightenmentCenter extends Controller {
         }
 
         if (currentTarget != null && !containsCommunication(currentTarget)) {
-            queueCommunication(currentTarget, Flags.NEUTRAL_EC_FOUND, 5);
+            queueCommunication(currentTarget, Flags.NEUTRAL_EC_FOUND, 30);
+            addToBuildQueue(RobotType.POLITICIAN,  25, 20);
         }
 
         prev_vote_count = rc.getTeamVotes();
