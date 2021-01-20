@@ -31,6 +31,11 @@ public class Muckraker extends Controller {
                         rc.expose(r.getLocation());
                     }
                 }
+                if (r.team == ENEMY && r.getType() == RobotType.ENLIGHTENMENT_CENTER){
+                    if (rc.isReady() && !tryMove(rc.getLocation().directionTo(r.getLocation()))){
+                        tryMove(rc.getLocation().directionTo(r.getLocation()).rotateLeft());
+                    }
+                }
             }
             explore();
         }
