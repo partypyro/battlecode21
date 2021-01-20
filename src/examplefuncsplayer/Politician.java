@@ -34,10 +34,17 @@ public class Politician extends Controller {
                 moveToDestination();
             }
             else{
-                explore();
+                if (rc.getID() % 4 == 0){
+                    orbit();
+                }
+                else explore();
             }
             for (RobotInfo r : allInfo) {
                 if (r.team == NEUTRAL || r.team == ENEMY) {
+                    empowerIfCan(ACTION_RADIUS_SQ);
+                    break;
+                }
+                if (rc.getEmpowerFactor(rc.getTeam(), 0) >= 2 && r.team == FRIENDLY && r.getType() == RobotType.ENLIGHTENMENT_CENTER){
                     empowerIfCan(ACTION_RADIUS_SQ);
                     break;
                 }
